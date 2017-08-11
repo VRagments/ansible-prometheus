@@ -21,32 +21,41 @@
   apt: name=build-essential state=present update_cache=yes
   when: ansible_pkg_mgr == "apt"
 
-- name: install gcc
-  yum: name=gcc state=present update_cache=yes
-  when: ansible_pkg_mgr == "yum"
+- name: install gmake
+  pkgng: name=gmake state=present
+  when: ansible_pkg_mgr == "pkgng"
 
-- name: set internal variables for convenience
-  set_fact:
-    prometheus_golang_tarball_url: "https://storage.googleapis.com/golang/go{{ prometheus_go_version }}.linux-amd64.tar.gz"
-    #prometheus_golang_tarball_url: "http://golang.org/dl/go{{ prometheus_go_version }}.linux-amd64.tar.gz"
-  when: ansible_userspace_bits == "64"
+- name: install go
+  pkgng: name=go state=present
+  when: ansible_pkg_mgr == "pkgng"
 
-- name: set internal variables for convenience
-  set_fact:
-    prometheus_golang_tarball_url: "https://storage.googleapis.com/golang/go{{ prometheus_go_version }}.linux-386.tar.gz"
-    #prometheus_golang_tarball_url: "http://golang.org/dl/go{{ prometheus_go_version }}.linux-386.tar.gz"
-  when: ansible_userspace_bits == "32"
+- name: install go
+  block:
 
-- name: mkdir for Golang
-  file: path={{ item }}  state=directory
-  with_items:
-    - "{{ prometheus_goroot }}"
-    - "{{ prometheus_gopath }}"
+    - name: set internal variables for convenience
+      set_fact:
+        prometheus_golang_tarball_url: "https://storage.googleapis.com/golang/go{{ prometheus_go_version }}.linux-amd64.tar.gz"
+        #prometheus_golang_tarball_url: "http://golang.org/dl/go{{ prometheus_go_version }}.linux-amd64.tar.gz"
+      when: ansible_userspace_bits == "64"
 
-- name: download and untar Golang tarball
-  unarchive:
-    src:  "{{ prometheus_golang_tarball_url }}"
-    dest: "{{ prometheus_workdir }}"
-    copy: no
-    creates: "{{ prometheus_goroot }}/bin/go"
-  when: "{{ not ansible_check_mode }}"
+    - name: set internal variables for convenience
+      set_fact:
+        prometheus_golang_tarball_url: "https://storage.googleapis.com/golang/go{{ prometheus_go_version }}.linux-386.tar.gz"
+        #prometheus_golang_tarball_url: "http://golang.org/dl/go{{ prometheus_go_version }}.linux-386.tar.gz"
+      when: ansible_userspace_bits == "32"
+
+    - name: mkdir for Golang
+      file: path={{ item }}  state=directory
+      with_items:
+        - "{{ prometheus_goroot }}"
+        - "{{ prometheus_gopath }}"
+
+    - name: download and untar Golang tarball
+      unarchive:
+        src:  "{{ prometheus_golang_tarball_url }}"
+        dest: "{{ prometheus_workdir }}"
+        copy: no
+        creates: "{{ prometheus_goroot }}/bin/go"
+      when: not ansible_check_mode
+
+  when: ansible_pkg_mgr != "pkgng"

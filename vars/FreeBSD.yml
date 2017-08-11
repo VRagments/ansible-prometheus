@@ -1,0 +1,3 @@
+---
+prometheus_config_path: /usr/local/etc/prometheus
+prometheus_git_make_cmd: gmake

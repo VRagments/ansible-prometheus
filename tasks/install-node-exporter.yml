@@ -38,7 +38,7 @@
         src: "{{ prometheus_node_exporter_tarball_url }}"
         dest: "{{ prometheus_install_path }}"
         copy: no
-      when: "{{ not ansible_check_mode }}"
+      when: not ansible_check_mode
 
   when: prometheus_node_exporter_version != "git"
 
@@ -48,7 +48,7 @@
     - name: set internal variables for convenience
       set_fact:
         prometheus_node_exporter_git_url: "https://github.com/prometheus/node_exporter.git"
-        prometheus_node_exporter_src_path: "{{ prometheus_goroot }}/src/github.com/prometheus/node_exporter"
+        prometheus_node_exporter_src_path: "{{ prometheus_gopath }}/src/github.com/prometheus/node_exporter"
         prometheus_node_exporter_daemon_dir: "{{ prometheus_install_path }}"
 
     - name: delete the node_exporter build directory, if necessary
@@ -63,9 +63,10 @@
         repo: "{{ prometheus_node_exporter_git_url }}"
         dest: "{{ prometheus_node_exporter_src_path }}"
         force: yes
+        version: " {{ prometheus_node_exporter_git_version }}"
 
     - name: build node_exporter source code
-      command: make
+      command: "{{ prometheus_git_make_cmd }}"
       args:
         chdir: "{{ prometheus_node_exporter_src_path }}"
         creates: node_exporter
@@ -74,6 +75,18 @@
         GOROOT: "{{ prometheus_goroot }}"
         GOPATH: "{{ prometheus_gopath }}"
         PATH: "{{ ansible_env.PATH }}:{{ prometheus_goroot }}/bin:{{ prometheus_gopath }}/bin"
+      when: ansible_pkg_mgr != "pkgng"
+
+    - name: build node_exporter source code
+      command: "{{ prometheus_git_make_cmd }}"
+      args:
+        chdir: "{{ prometheus_node_exporter_src_path }}"
+        creates: node_exporter
+      environment:
+        GO15VENDOREXPERIMENT: 1
+        GOPATH: "{{ prometheus_gopath }}"
+        PATH: "{{ ansible_env.PATH }}:{{ prometheus_gopath }}/bin"
+      when: ansible_pkg_mgr == "pkgng"
 
     - name: copy the built node_exporter to the install path
       command: "cp {{ prometheus_node_exporter_src_path }}/node_exporter {{ prometheus_install_path }}"
@@ -86,7 +99,7 @@
 
 - name: set permissions, owner and group
   file: path={{ prometheus_node_exporter_daemon_dir }}/node_exporter owner={{ prometheus_user }} group={{ prometheus_group }} mode="go-w"
-  when: '{{ not ansible_check_mode }}'
+  when: not ansible_check_mode
 
 - name: mkdir for data
   file:
@@ -117,4 +130,4 @@
 
 - name: set INIT status and start
   service: name=node_exporter enabled=yes state=started
-  when: "{{ not initscriptcopy.skipped|default(False) or not unitfilecopy.skipped|default(False) }}"
+  when: initscriptcopy.skipped|default(False) or not unitfilecopy.skipped|default(False)

@@ -38,7 +38,7 @@
         src: "{{ prometheus_tarball_url }}"
         dest: "{{ prometheus_install_path }}"
         copy: no
-      when: "{{ not ansible_check_mode }}"
+      when: not ansible_check_mode
 
   when: prometheus_version != "git"
 
@@ -62,7 +62,7 @@
         force: yes
 
     - name: build prometheus
-      command: make build
+      command: "{{ prometheus_git_make_cmd }} build"
       args:
         chdir: "{{ prometheus_src_path }}"
         creates: prometheus
@@ -92,7 +92,7 @@
     group: "{{ prometheus_group }}"
     mode: "go-w"
     recurse: yes
-  when: '{{ not ansible_check_mode }}'
+  when: not ansible_check_mode
 
 - name: mkdir for config and data
   file:
@@ -123,7 +123,7 @@
 
 - name: set INIT status
   service: name=prometheus enabled=yes state=started
-  when: "{{ not initscriptcopy.skipped|default(False) }}"
+  when: not initscriptcopy.skipped|default(False)
 
 
 - name: copy rule files from playbook's, if any

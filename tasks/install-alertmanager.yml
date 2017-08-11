@@ -70,8 +70,7 @@
         force: yes
 
     - name: build alertmanager source code
-      command: make format build
-      #command: make
+      command: "{{ prometheus_git_make_cmd }} format build"
       args:
         chdir: "{{ prometheus_alertmanager_src_path }}"
         creates: alertmanager
@@ -92,7 +91,7 @@
         owner: "{{ prometheus_user }}"
         group: "{{ prometheus_group }}"
         mode: "go-w"
-      when: '{{ not ansible_check_mode }}'
+      when: not ansible_check_mode
 
   when: prometheus_alertmanager_version == "git"
 
@@ -124,7 +123,7 @@
 
 - name: set INIT status
   service: name=alertmanager enabled=yes state=started
-  when: "{{ not initscriptcopy.skipped|default(False) }}"
+  when: not initscriptcopy.skipped|default(False)
 
 #- name: set INIT status and start
 #  service: name=alertmanager state=started

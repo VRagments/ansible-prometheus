@@ -6,6 +6,12 @@
 # @see http://prometheus.io/docs/introduction/getting_started/
 #
 
+- include_vars: "{{ item }}"
+  with_first_found:
+    - "../vars/{{ ansible_os_family }}.yml"
+    - "../vars/empty.yml"
+  tags: [always]
+
 - name: set role variables, if necessary
   include: set-role-variables.yml
 
